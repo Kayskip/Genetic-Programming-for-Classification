@@ -3,7 +3,7 @@
  * @author karu
  * Student ID: 300417869
  */
-public class Patient {
+public class Instance {
 
 	private int[] attributes;
 	private int id;
@@ -12,7 +12,7 @@ public class Patient {
 	/**
 	 * @param attributes
 	 */
-	public Patient(String[] attributes) {
+	public Instance(String[] attributes) {
 
 	}
 

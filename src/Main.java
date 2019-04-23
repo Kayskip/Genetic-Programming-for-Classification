@@ -10,9 +10,9 @@ import org.jgap.gp.impl.GPConfiguration;
 import org.jgap.gp.impl.GPGenotype;
 import org.jgap.gp.terminal.Variable;
 
-
 /**
- * @author karu Student ID : 300417869
+ * @author karu 
+ * Student ID : 300417869
  *
  */
 public class Main {
@@ -31,8 +31,8 @@ public class Main {
 	private Variable variable;
 	private MathProblem problem;
 	private GPConfiguration config;
-	private ArrayList<Patient> trainingPatients;
-	private ArrayList<Patient> testingPatients;
+	private ArrayList<Instance> trainingPatients;
+	private ArrayList<Instance> testingPatients;
 
 	/**
 	 * This is where we will load our training file, test file and names.data file
@@ -46,8 +46,8 @@ public class Main {
 	 */
 	private Main(String trainingFile, String testFile, String nameFile) {
 
-		this.trainingPatients = new ArrayList<Patient>();
-		this.testingPatients = new ArrayList<Patient>();
+		this.trainingPatients = new ArrayList<Instance>();
+		this.testingPatients = new ArrayList<Instance>();
 		this.nameFile = nameFile;
 
 		Scanner scan;
@@ -60,7 +60,7 @@ public class Main {
 
 		for (String line = scan.nextLine(); scan.hasNextLine(); line = scan.nextLine()) {
 			String[] data = line.split(",");
-			this.trainingPatients.add(new Patient(data));
+			this.trainingPatients.add(new Instance(data));
 		}
 
 		try {
@@ -72,7 +72,7 @@ public class Main {
 
 		for (String line = scan.nextLine(); scan.hasNextLine(); line = scan.nextLine()) {
 			String[] data = line.split(",");
-			this.testingPatients.add(new Patient(data));
+			this.testingPatients.add(new Instance(data));
 		}
 	}
 
@@ -146,7 +146,7 @@ public class Main {
 		 * Training Patients parsed from the main class within the initConfig method
 		 * These will be used in the evaluate fitness function method
 		 */
-		private ArrayList<Patient> trainingPatients;
+		private ArrayList<Instance> trainingPatients;
 		/**
 		 * Minimal acceptance error
 		 */
@@ -160,7 +160,7 @@ public class Main {
 		 */
 		private static final long serialVersionUID = -3244818378241139131L;
 
-		public PatientFitnessFunction(ArrayList<Patient> trainingPatients) {
+		public PatientFitnessFunction(ArrayList<Instance> trainingPatients) {
 			this.trainingPatients = trainingPatients;
 		}
 
@@ -188,11 +188,9 @@ public class Main {
 					throw ex;
 				}
 			}
-
 			if (totalError < MIN_ER) {
 				return 0;
 			}
-
 			return totalError;
 		}
 	}
