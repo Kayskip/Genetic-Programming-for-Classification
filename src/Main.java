@@ -1,4 +1,5 @@
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.Scanner;
 
 import org.jgap.gp.CommandGene;
@@ -9,9 +10,9 @@ import org.jgap.gp.impl.GPConfiguration;
 import org.jgap.gp.impl.GPGenotype;
 import org.jgap.gp.terminal.Variable;
 
+
 /**
- * @author karu 
- * Student ID : 300417869
+ * @author karu Student ID : 300417869
  *
  */
 public class Main {
@@ -26,27 +27,52 @@ public class Main {
 
 	private double x[];
 	private double y[];
+	private String nameFile;
 	private Variable variable;
 	private MathProblem problem;
 	private GPConfiguration config;
+	private ArrayList<Patient> trainingPatients;
+	private ArrayList<Patient> testingPatients;
 
 	/**
-	 * Firstly, we initialize the input and output to our desired size. We will then
-	 * scan through our data, ignoring the first two lines which is discarded
-	 * information. We can now load the information into our lists.
+	 * This is where we will load our training file, test file and names.data file
+	 * In this method we are initializing the lists to a new array of patients. From
+	 * here we will scan the desired files and load them into their specified lists
+	 * appropriately.
 	 * 
-	 * @param file we will be scanning (regression.txt)
+	 * @param trainingFile
+	 * @param testFile
+	 * @param nameFile
 	 */
-	@SuppressWarnings("resource")
-	private Main(String file) {
-		this.x = new double[INPUT_SIZE];
-		this.y = new double[INPUT_SIZE];
-		Scanner scan = new Scanner(new InputStreamReader(ClassLoader.getSystemResourceAsStream(file)));
-		scan.nextLine();
-		scan.nextLine();
-		for (int i = 0; scan.hasNextDouble(); i++) {
-			this.x[i] = scan.nextDouble();
-			this.y[i] = scan.nextDouble();
+	private Main(String trainingFile, String testFile, String nameFile) {
+
+		this.trainingPatients = new ArrayList<Patient>();
+		this.testingPatients = new ArrayList<Patient>();
+		this.nameFile = nameFile;
+
+		Scanner scan;
+		try {
+			scan = new Scanner(new InputStreamReader(ClassLoader.getSystemResourceAsStream(trainingFile)));
+		} catch (NullPointerException e) {
+			e.printStackTrace();
+			return;
+		}
+
+		for (String line = scan.nextLine(); scan.hasNextLine(); line = scan.nextLine()) {
+			String[] data = line.split(",");
+			this.trainingPatients.add(new Patient(data));
+		}
+
+		try {
+			scan = new Scanner(new InputStreamReader(ClassLoader.getSystemResourceAsStream(testFile)));
+		} catch (NullPointerException e) {
+			e.printStackTrace();
+			return;
+		}
+
+		for (String line = scan.nextLine(); scan.hasNextLine(); line = scan.nextLine()) {
+			String[] data = line.split(",");
+			this.testingPatients.add(new Patient(data));
 		}
 	}
 
@@ -59,7 +85,7 @@ public class Main {
 	private void initConfig() throws Exception {
 		this.config = new GPConfiguration();
 		this.config.setGPFitnessEvaluator(new DeltaGPFitnessEvaluator());
-		this.config.setFitnessFunction(new FormulaFitnessFunction());
+		this.config.setFitnessFunction(new PatientFitnessFunction(this.trainingPatients));
 
 		this.config.setMaxCrossoverDepth(8);
 		this.config.setMaxInitDepth(4);
@@ -92,28 +118,35 @@ public class Main {
 	}
 
 	/**
-	 * Launch the program if file exists
+	 * Launch the program if files exist and arguments are met
 	 * 
 	 * @param args
 	 * @throws Exception
 	 */
 	public static void main(String[] args) throws Exception {
-		if (args.length != 1) {
+		if (args.length != 3) {
 			System.out.println("Invalid usage. \nArguments: Filename");
 			return;
 		} else {
-			Main main = new Main(args[0]);
+			Main main = new Main(args[0], args[1], args[2]);
 			main.initConfig();
 			main.run();
 		}
 	}
 
 	/**
-	 * @author karu 
-	 * Method extracted from original MathProblem class, altered to
-	 * work with main class
+	 * @author karu
+	 * 
+	 *         Method evaluate extracted from original MathProblem class, altered to
+	 *         work with main class
+	 * 
 	 */
-	public class FormulaFitnessFunction extends GPFitnessFunction {
+	public class PatientFitnessFunction extends GPFitnessFunction {
+		/**
+		 * Training Patients parsed from the main class within the initConfig method
+		 * These will be used in the evaluate fitness function method
+		 */
+		private ArrayList<Patient> trainingPatients;
 		/**
 		 * Minimal acceptance error
 		 */
@@ -126,6 +159,10 @@ public class Main {
 		 * Added so it stops errors
 		 */
 		private static final long serialVersionUID = -3244818378241139131L;
+
+		public PatientFitnessFunction(ArrayList<Patient> trainingPatients) {
+			this.trainingPatients = trainingPatients;
+		}
 
 		/**
 		 * Method extracted from original MathProblem class, altered to suit this class
@@ -151,7 +188,7 @@ public class Main {
 					throw ex;
 				}
 			}
-			
+
 			if (totalError < MIN_ER) {
 				return 0;
 			}
