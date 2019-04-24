@@ -11,28 +11,20 @@ import org.jgap.gp.impl.GPGenotype;
 import org.jgap.gp.terminal.Variable;
 
 /**
- * @author karu 
- * Student ID : 300417869
+ * @author karu Student ID : 300417869
  *
  */
 public class Main {
 	/**
 	 * Max evolutions we will allow
 	 */
-	private static final int MAX_EVO = 1000;
-	/**
-	 * Input size of our data set
-	 */
-	private static final int INPUT_SIZE = 20;
+	private static final int MAX_EVO = 300;
 
-	private double x[];
-	private double y[];
 	private String nameFile;
-	private Variable variable;
 	private MathProblem problem;
 	private GPConfiguration config;
-	private ArrayList<Instance> trainingPatients;
-	private ArrayList<Instance> testingPatients;
+	protected ArrayList<Instance> trainingInstances;
+	protected ArrayList<Instance> testingInstances;
 
 	/**
 	 * This is where we will load our training file, test file and names.data file
@@ -46,8 +38,8 @@ public class Main {
 	 */
 	private Main(String trainingFile, String testFile, String nameFile) {
 
-		this.trainingPatients = new ArrayList<Instance>();
-		this.testingPatients = new ArrayList<Instance>();
+		this.trainingInstances = new ArrayList<Instance>();
+		this.testingInstances = new ArrayList<Instance>();
 		this.nameFile = nameFile;
 
 		Scanner scan;
@@ -60,7 +52,7 @@ public class Main {
 
 		for (String line = scan.nextLine(); scan.hasNextLine(); line = scan.nextLine()) {
 			String[] data = line.split(",");
-			this.trainingPatients.add(new Instance(data));
+			this.trainingInstances.add(new Instance(data));
 		}
 
 		try {
@@ -72,8 +64,32 @@ public class Main {
 
 		for (String line = scan.nextLine(); scan.hasNextLine(); line = scan.nextLine()) {
 			String[] data = line.split(",");
-			this.testingPatients.add(new Instance(data));
+			this.testingInstances.add(new Instance(data));
 		}
+	}
+
+	/**
+	 * @param config
+	 * @return array of variables
+	 * @throws Exception
+	 */
+	@SuppressWarnings("resource")
+	public Variable[] createVariables(GPConfiguration config) throws Exception {
+		Variable[] variables = new Variable[9];
+
+		Scanner scan;
+		try {
+			scan = new Scanner(new InputStreamReader(ClassLoader.getSystemResourceAsStream(this.nameFile)));
+		} catch (NullPointerException e) {
+			throw new RuntimeException("Invalid File Specified");
+		}
+
+		for (int i = 0; i < 9; i++) {
+			String name = scan.nextLine();
+			variables[i] = new Variable(config, name, CommandGene.DoubleClass);
+		}
+
+		return variables;
 	}
 
 	/**
@@ -85,7 +101,7 @@ public class Main {
 	private void initConfig() throws Exception {
 		this.config = new GPConfiguration();
 		this.config.setGPFitnessEvaluator(new DeltaGPFitnessEvaluator());
-		this.config.setFitnessFunction(new PatientFitnessFunction(this.trainingPatients));
+		this.config.setFitnessFunction(new InstanceFitnessFunction(this.trainingInstances));
 
 		this.config.setMaxCrossoverDepth(8);
 		this.config.setMaxInitDepth(4);
@@ -95,9 +111,7 @@ public class Main {
 		this.config.setCrossoverProb(0.9f);
 		this.config.setMutationProb(35.0f);
 
-		this.variable = Variable.create(this.config, "X", CommandGene.DoubleClass);
-
-		this.problem = new MathProblem(this.config, this.variable);
+		this.problem = new MathProblem(this.config, createVariables(this.config));
 	}
 
 	/**
@@ -113,8 +127,24 @@ public class Main {
 		GPGenotype gp = this.problem.create();
 		gp.setVerboseOutput(true);
 		gp.evolve(MAX_EVO);
+		gp.setGPConfiguration(this.config);
 		gp.outputSolution(gp.getAllTimeBest());
 		this.problem.showTree(gp.getAllTimeBest(), "best-solution.png");
+		testAlgorithm(gp);
+	}
+
+	private void testAlgorithm(GPGenotype gp) {
+		InstanceFitnessFunction fitnessFunction = new InstanceFitnessFunction(trainingInstances);
+		double result = fitnessFunction.evaluate(gp.getAllTimeBest()) * 100; // convert incorrect to percentage
+		result = 100 - result;
+		System.out.println(
+				"\nPercentage of training instances correctly classified: " + String.format("%.4f", result) + "%");
+
+		fitnessFunction = new InstanceFitnessFunction(testingInstances);
+		result = fitnessFunction.evaluate(gp.getAllTimeBest()) * 100; // convert incorrect to percentage
+		result = 100 - result;
+		System.out
+				.println("\nPercentage of test instances correctly classified: " + String.format("%.4f", result) + "%");
 	}
 
 	/**
@@ -125,7 +155,7 @@ public class Main {
 	 */
 	public static void main(String[] args) throws Exception {
 		if (args.length != 3) {
-			System.out.println("Invalid usage. \nArguments: Filename");
+			System.out.println("Invalid input. \nEnter correct amount of arguments");
 			return;
 		} else {
 			Main main = new Main(args[0], args[1], args[2]);
@@ -141,27 +171,23 @@ public class Main {
 	 *         work with main class
 	 * 
 	 */
-	public class PatientFitnessFunction extends GPFitnessFunction {
+	public class InstanceFitnessFunction extends GPFitnessFunction {
 		/**
 		 * Training Patients parsed from the main class within the initConfig method
 		 * These will be used in the evaluate fitness function method
 		 */
-		private ArrayList<Instance> trainingPatients;
+		private ArrayList<Instance> trainingInstances;
 		/**
 		 * Minimal acceptance error
 		 */
 		private static final double MIN_ER = 0.001;
 		/**
-		 * 
-		 */
-		private final Object[] noArguments = new Object[0];
-		/**
 		 * Added so it stops errors
 		 */
 		private static final long serialVersionUID = -3244818378241139131L;
 
-		public PatientFitnessFunction(ArrayList<Instance> trainingPatients) {
-			this.trainingPatients = trainingPatients;
+		public InstanceFitnessFunction(ArrayList<Instance> trainingInstances) {
+			this.setTrainingInstances(trainingInstances);
 		}
 
 		/**
@@ -172,26 +198,35 @@ public class Main {
 		 */
 		@Override
 		protected double evaluate(IGPProgram igpProgram) {
-			double totalError = 0;
-			for (int i = 0; i < INPUT_SIZE; i++) {
-				variable.set(x[i]);
-				try {
-					double result = igpProgram.execute_double(0, this.noArguments);
-					totalError += Math.abs(result - y[i]);
+			double correct = 0;
 
-					if (Double.isInfinite(totalError)) {
-						return Double.MAX_VALUE;
-					}
-				} catch (ArithmeticException ex) {
-					System.out.println("x = " + x[i]);
-					System.out.println(igpProgram);
-					throw ex;
+			for (Instance instance : this.getTrainingInstances()) {
+				problem.setVariablesOfInstance(instance);
+
+				double result = igpProgram.execute_double(0, new Object[0]);
+				int predictedClass;
+
+				if (result < 0) {
+					predictedClass = 2;
+				} else {
+					predictedClass = 4;
+				}
+				if (predictedClass == instance.getCondition()) {
+					correct++;
 				}
 			}
-			if (totalError < MIN_ER) {
+			if (correct < MIN_ER) {
 				return 0;
 			}
-			return totalError;
+			return correct / this.getTrainingInstances().size();
+		}
+
+		public ArrayList<Instance> getTrainingInstances() {
+			return trainingInstances;
+		}
+
+		public void setTrainingInstances(ArrayList<Instance> trainingInstances) {
+			this.trainingInstances = trainingInstances;
 		}
 	}
 }

@@ -12,23 +12,22 @@ import org.jgap.gp.terminal.Terminal;
 import org.jgap.gp.terminal.Variable;
 
 /**
- * @author karu
- * Student ID : 300417869
+ * @author karu Student ID : 300417869
  */
 public class MathProblem extends GPProblem {
 
 	private GPConfiguration config;
-	private Variable vx;
+	private Variable[] variables;
 
 	/**
 	 * @param config
 	 * @param vx
 	 * @throws InvalidConfigurationException
 	 */
-	public MathProblem(GPConfiguration config, Variable vx) throws InvalidConfigurationException {
+	public MathProblem(GPConfiguration config, Variable[] vx) throws InvalidConfigurationException {
 		super(config);
 		this.config = config;
-		this.vx = vx;
+		this.variables = vx;
 	}
 
 	/**
@@ -41,15 +40,48 @@ public class MathProblem extends GPProblem {
 	 * @return GPGenotype
 	 * @throws InvalidConfigurationException
 	 */
+	@SuppressWarnings("rawtypes")
 	@Override
 	public GPGenotype create() throws InvalidConfigurationException {
 		Class[] types = { CommandGene.DoubleClass };
 		Class[][] argTypes = { {}, };
-		CommandGene[][] nodeSets = { { vx, new Pow(this.config, CommandGene.DoubleClass),
-				new Multiply(this.config, CommandGene.DoubleClass), new Add(this.config, CommandGene.DoubleClass),
-				new Divide(this.config, CommandGene.DoubleClass), new Subtract(this.config, CommandGene.DoubleClass),
-				new Terminal(this.config, CommandGene.DoubleClass, 2.0d, 10.0d, true) } };
 
-		return GPGenotype.randomInitialGenotype(config, types, argTypes, nodeSets, 20, true);
+		CommandGene[] mathCommands = { new Add(config, CommandGene.DoubleClass),
+				new Pow(this.config, CommandGene.DoubleClass), new Multiply(config, CommandGene.DoubleClass),
+				new Divide(config, CommandGene.DoubleClass), new Subtract(config, CommandGene.DoubleClass),
+				new Terminal(config, CommandGene.DoubleClass, -1.0d, 10.0d, true), };
+
+		CommandGene[] allCommandGenes = new CommandGene[mathCommands.length + this.getVariables().length];
+
+		for (int i = 0; i < this.getVariables().length; i++)
+			allCommandGenes[i] = this.variables[i];
+
+		for (int i = this.getVariables().length; i < allCommandGenes.length; i++)
+			allCommandGenes[i] = mathCommands[i - this.getVariables().length];
+
+		CommandGene[][] nodeSets = new CommandGene[2][allCommandGenes.length];
+		nodeSets[0] = allCommandGenes;
+		nodeSets[1] = new CommandGene[0];
+
+		return GPGenotype.randomInitialGenotype(this.config, types, argTypes, nodeSets, 20, true);
+	}
+
+	/**
+	 * @param instance
+	 */
+	public void setVariablesOfInstance(Instance instance) {
+		int[] patientAttributes = instance.getAttributes();
+		assert patientAttributes.length == this.getVariables().length;
+
+		for (int i = 0; i < this.getVariables().length; i++) {
+			this.getVariables()[i].set((double) patientAttributes[i]);
+		}
+	}
+
+	/**
+	 * @return variables
+	 */
+	private Variable[] getVariables() {
+		return this.variables;
 	}
 }
