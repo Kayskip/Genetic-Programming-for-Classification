@@ -3,8 +3,6 @@ import java.util.ArrayList;
 import java.util.Scanner;
 
 import org.jgap.gp.CommandGene;
-import org.jgap.gp.GPFitnessFunction;
-import org.jgap.gp.IGPProgram;
 import org.jgap.gp.impl.DeltaGPFitnessEvaluator;
 import org.jgap.gp.impl.GPConfiguration;
 import org.jgap.gp.impl.GPGenotype;
@@ -18,17 +16,17 @@ public class Main {
 	/**
 	 * Max evolutions we will allow
 	 */
-	private static final int MAX_EVO = 300;
+	private static final int MAX_EVO = 200;
 
 	private String nameFile;
-	private MathProblem problem;
+	public static GPClassification problem;
 	private GPConfiguration config;
-	protected ArrayList<Instance> trainingInstances;
-	protected ArrayList<Instance> testingInstances;
+	private ArrayList<Instance> trainingInstances;
+	private ArrayList<Instance> testingInstances;
 
 	/**
 	 * This is where we will load our training file, test file and names.data file
-	 * In this method we are initializing the lists to a new array of patients. From
+	 * In this method we are initializing the lists to a new array of instances. From
 	 * here we will scan the desired files and load them into their specified lists
 	 * appropriately.
 	 * 
@@ -69,6 +67,9 @@ public class Main {
 	}
 
 	/**
+	 * Creates the variables into a list of 9
+	 * Loads the names file into variables
+	 * 
 	 * @param config
 	 * @return array of variables
 	 * @throws Exception
@@ -111,7 +112,7 @@ public class Main {
 		this.config.setCrossoverProb(0.9f);
 		this.config.setMutationProb(35.0f);
 
-		this.problem = new MathProblem(this.config, createVariables(this.config));
+		problem = new GPClassification(this.config, createVariables(this.config));
 	}
 
 	/**
@@ -124,27 +125,13 @@ public class Main {
 	 * @throws Exception
 	 */
 	private void run() throws Exception {
-		GPGenotype gp = this.problem.create();
+		GPGenotype gp = problem.create();
 		gp.setVerboseOutput(true);
 		gp.evolve(MAX_EVO);
 		gp.setGPConfiguration(this.config);
 		gp.outputSolution(gp.getAllTimeBest());
-		this.problem.showTree(gp.getAllTimeBest(), "best-solution.png");
-		testAlgorithm(gp);
-	}
-
-	private void testAlgorithm(GPGenotype gp) {
-		InstanceFitnessFunction fitnessFunction = new InstanceFitnessFunction(trainingInstances);
-		double result = fitnessFunction.evaluate(gp.getAllTimeBest()) * 100; // convert incorrect to percentage
-		result = 100 - result;
-		System.out.println(
-				"\nPercentage of training instances correctly classified: " + String.format("%.4f", result) + "%");
-
-		fitnessFunction = new InstanceFitnessFunction(testingInstances);
-		result = fitnessFunction.evaluate(gp.getAllTimeBest()) * 100; // convert incorrect to percentage
-		result = 100 - result;
-		System.out
-				.println("\nPercentage of test instances correctly classified: " + String.format("%.4f", result) + "%");
+		problem.showTree(gp.getAllTimeBest(), "best-solution.png");
+		new TestGPClassification(gp, testingInstances, trainingInstances);
 	}
 
 	/**
@@ -161,72 +148,6 @@ public class Main {
 			Main main = new Main(args[0], args[1], args[2]);
 			main.initConfig();
 			main.run();
-		}
-	}
-
-	/**
-	 * @author karu
-	 * 
-	 *         Method evaluate extracted from original MathProblem class, altered to
-	 *         work with main class
-	 * 
-	 */
-	public class InstanceFitnessFunction extends GPFitnessFunction {
-		/**
-		 * Training Patients parsed from the main class within the initConfig method
-		 * These will be used in the evaluate fitness function method
-		 */
-		private ArrayList<Instance> trainingInstances;
-		/**
-		 * Minimal acceptance error
-		 */
-		private static final double MIN_ER = 0.001;
-		/**
-		 * Added so it stops errors
-		 */
-		private static final long serialVersionUID = -3244818378241139131L;
-
-		public InstanceFitnessFunction(ArrayList<Instance> trainingInstances) {
-			this.setTrainingInstances(trainingInstances);
-		}
-
-		/**
-		 * Method extracted from original MathProblem class, altered to suit this class
-		 * Overrides abstract method evaluate Provide the variable X with the input
-		 * number. See method create(), declaration of "nodeSets" for where X is
-		 * defined.
-		 */
-		@Override
-		protected double evaluate(IGPProgram igpProgram) {
-			double correct = 0;
-
-			for (Instance instance : this.getTrainingInstances()) {
-				problem.setVariablesOfInstance(instance);
-
-				double result = igpProgram.execute_double(0, new Object[0]);
-				int predictedClass;
-
-				if (result < 0) {
-					predictedClass = 2;
-				} else {
-					predictedClass = 4;
-				}
-				if (predictedClass == instance.getCondition()) {
-					correct++;
-				}
-			}
-			if (correct < MIN_ER) {
-				return 0;
-			}
-			return correct / this.getTrainingInstances().size();
-		}
-
-		public ArrayList<Instance> getTrainingInstances() {
-			return trainingInstances;
-		}
-
-		public void setTrainingInstances(ArrayList<Instance> trainingInstances) {
-			this.trainingInstances = trainingInstances;
 		}
 	}
 }

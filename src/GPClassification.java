@@ -14,7 +14,7 @@ import org.jgap.gp.terminal.Variable;
 /**
  * @author karu Student ID : 300417869
  */
-public class MathProblem extends GPProblem {
+public class GPClassification extends GPProblem {
 
 	private GPConfiguration config;
 	private Variable[] variables;
@@ -24,7 +24,7 @@ public class MathProblem extends GPProblem {
 	 * @param vx
 	 * @throws InvalidConfigurationException
 	 */
-	public MathProblem(GPConfiguration config, Variable[] vx) throws InvalidConfigurationException {
+	public GPClassification(GPConfiguration config, Variable[] vx) throws InvalidConfigurationException {
 		super(config);
 		this.config = config;
 		this.variables = vx;
