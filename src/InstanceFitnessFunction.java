@@ -16,7 +16,7 @@ public class InstanceFitnessFunction extends GPFitnessFunction {
 	/**
 	 * Minimal acceptance error
 	 */
-	private static final double MIN_ER = 0.001;
+	private static final double MIN_ER = 0.01;
 	/**
 	 * Added so it stops errors
 	 */

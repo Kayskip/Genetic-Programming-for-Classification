@@ -16,7 +16,7 @@ public class Main {
 	/**
 	 * Max evolutions we will allow
 	 */
-	private static final int MAX_EVO = 200;
+	private static final int MAX_EVO = 275;
 
 	private String nameFile;
 	public static GPClassification problem;
@@ -131,7 +131,7 @@ public class Main {
 		gp.setGPConfiguration(this.config);
 		gp.outputSolution(gp.getAllTimeBest());
 		problem.showTree(gp.getAllTimeBest(), "best-solution.png");
-		new TestGPClassification(gp, testingInstances, trainingInstances);
+		new TestGPClassification(gp, this.testingInstances, this.trainingInstances);
 	}
 
 	/**
